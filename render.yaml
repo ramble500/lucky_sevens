@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: koun-no-shichinarabe-activity
+    runtime: node
+    rootDir: activity
+    plan: free
+    autoDeployTrigger: commit
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: SERVE_STATIC
+        value: "1"
+      - key: VITE_DISCORD_CLIENT_ID
+        sync: false

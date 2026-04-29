@@ -1,0 +1,10 @@
+activity/node_modules/
+activity/dist/
+activity/.env
+activity/.env.local
+activity/.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>幸運の七並べ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Browser Card Game</p>
+        <h1>幸運の七並べ</h1>
+        <p class="lead">
+          3人で遊ぶ変則七並べです。スペードの7を持つ人が最初にそれを出し、
+          以後は時計回りで進行します。
+        </p>
+      </div>
+      <div class="hero-actions">
+        <button id="restart-button" class="primary-button" type="button">新しく配る</button>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <section class="table-panel">
+        <div class="table-meta">
+          <div class="pill" id="turn-pill">配布中...</div>
+          <div class="pill subtle" id="phase-pill">ゲーム準備中</div>
+        </div>
+
+        <section class="opponents" id="opponents"></section>
+
+        <section class="board-panel">
+          <div class="board-head">
+            <h2>場札</h2>
+            <p>出せるカードは 7 の左右につながる同じマークだけです。</p>
+          </div>
+          <div id="board" class="board" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <aside class="side-panel">
+        <section class="rules-card">
+          <h2>遊び方</h2>
+          <ul>
+            <li>3人で対戦し、スペードの7を持つ人が最初にそれを出します。</li>
+            <li>ほかの3枚の「7」は普通の手札として扱います。</li>
+            <li>出せるカードがあるなら、必ず1枚場に出します。</li>
+            <li>出せるカードがないなら、手札を1枚だけ裏向きで捨てます。</li>
+            <li>ジョーカーは「小王」と「大王」が1枚ずつあり、それぞれ小さい側・大きい側専用です。</li>
+            <li>同点なら、その局で順番が若いプレイヤーを上位にします。</li>
+            <li>得点は A=1 点、2〜K は数字どおり、小王=14 点、大王=15 点です。</li>
+            <li>精算は2位が1点、3位が2点を払い、1位が受け取ります。</li>
+            <li>7を最後に出して上がると 8 倍、小王・大王で上がると 4 倍、捨て札0枚上がりは 2 倍です。</li>
+            <li>1枚も場に出さずに全部捨て切った場合は、得点を無視して勝ち、8倍で精算します。</li>
+            <li>支払い側は捨て札点が 40 / 60 / 80 点以上で、それぞれ 2 / 4 / 8 倍になります。</li>
+          </ul>
+        </section>
+
+        <section class="log-card">
+          <div class="log-head">
+            <h2>進行ログ</h2>
+          </div>
+          <ol id="log-list" class="log-list" aria-live="polite"></ol>
+        </section>
+
+        <section class="results-card">
+          <h2>順位と精算</h2>
+          <ol id="score-list" class="score-list" aria-live="polite"></ol>
+        </section>
+      </aside>
+
+      <section class="player-panel">
+        <div class="player-head">
+          <div>
+            <p class="eyebrow">Your Hand</p>
+            <h2>あなたの手札</h2>
+          </div>
+          <p id="hand-hint" class="hand-hint">配布しています...</p>
+        </div>
+        <section id="action-panel" class="action-panel" hidden>
+          <p id="action-title" class="action-title"></p>
+          <div id="action-buttons" class="action-buttons"></div>
+        </section>
+        <div id="player-hand" class="player-hand" aria-label="あなたの手札"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="rules.js"></script>
+  <script src="ai.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "koun-no-shichinarabe-activity",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "server": "node ./server/roomServer.js",
+    "start": "node ./server/roomServer.js",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@discord/embedded-app-sdk": "latest",
+    "socket.io": "latest",
+    "socket.io-client": "latest"
+  },
+  "devDependencies": {
+    "vite": "latest"
+  }
+}
