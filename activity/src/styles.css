@@ -1216,8 +1216,8 @@ body[data-game-stage="game"][data-viewport="compact"] .page-shell {
   flex-direction: column;
   width: min(100% - 8px, 1280px);
   min-height: calc(var(--app-height) - var(--safe-top) - var(--safe-bottom));
-  padding-top: 4px;
-  padding-bottom: calc(4px + var(--safe-bottom));
+  padding-top: 2px;
+  padding-bottom: calc(2px + var(--safe-bottom));
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .game-layout {
@@ -1226,8 +1226,8 @@ body[data-game-stage="game"][data-viewport="compact"] .game-layout {
   grid-template-areas:
     "table"
     "player";
-  grid-template-rows: minmax(0, 58%) minmax(0, 42%);
-  gap: 6px;
+  grid-template-rows: minmax(0, 62%) minmax(0, 38%);
+  gap: 4px;
   margin-top: 0;
 }
 
@@ -1242,8 +1242,8 @@ body[data-game-stage="game"][data-viewport="compact"] .card-note {
 
 body[data-game-stage="game"][data-viewport="compact"] .table-panel,
 body[data-game-stage="game"][data-viewport="compact"] .player-panel {
-  padding: 8px;
-  border-radius: 18px;
+  padding: 6px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -1253,80 +1253,80 @@ body[data-game-stage="game"][data-viewport="compact"] .table-panel {
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .table-meta {
-  gap: 6px;
+  gap: 4px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .pill {
-  min-height: 30px;
-  padding: 0 10px;
-  font-size: 0.74rem;
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 0.68rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .opponents {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .opponent-card {
-  padding: 7px 8px;
-  border-radius: 14px;
+  padding: 5px 6px;
+  border-radius: 12px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .opponent-name {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .opponent-meta {
-  margin-top: 2px;
-  font-size: 0.68rem;
+  margin-top: 1px;
+  font-size: 0.6rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  margin-top: 6px;
-  padding: 8px;
-  border-radius: 16px;
+  margin-top: 4px;
+  padding: 6px;
+  border-radius: 14px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-head {
-  gap: 2px;
+  gap: 1px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-head h2,
 body[data-game-stage="game"][data-viewport="compact"] .player-head h2 {
-  font-size: 0.96rem;
+  font-size: 0.86rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board {
-  gap: 3px;
-  margin-top: 6px;
+  gap: 2px;
+  margin-top: 4px;
   overflow: hidden;
   align-content: start;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-row {
-  grid-template-columns: 20px repeat(13, minmax(0, 1fr));
-  gap: 2px;
+  grid-template-columns: 18px repeat(13, minmax(0, 1fr));
+  gap: 1px;
   min-width: 0;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .suit-label {
-  height: 24px;
-  border-radius: 9px;
-  font-size: 0.76rem;
+  height: 20px;
+  border-radius: 7px;
+  font-size: 0.68rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-slot,
 body[data-game-stage="game"][data-viewport="compact"] .playing-card {
-  min-height: 24px;
-  border-radius: 8px;
+  min-height: 20px;
+  border-radius: 6px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .board-slot {
-  padding: 1px;
-  font-size: 0.62rem;
+  padding: 0;
+  font-size: 0.56rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .playing-card {
@@ -1335,7 +1335,7 @@ body[data-game-stage="game"][data-viewport="compact"] .playing-card {
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .card-center {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .player-panel {
@@ -1344,54 +1344,54 @@ body[data-game-stage="game"][data-viewport="compact"] .player-panel {
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .player-head {
-  gap: 2px;
+  gap: 1px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .hand-hint {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .action-panel {
-  margin-top: 6px;
-  padding: 8px;
-  border-radius: 14px;
+  margin-top: 4px;
+  padding: 6px;
+  border-radius: 12px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .action-title {
-  font-size: 0.74rem;
+  font-size: 0.66rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .action-buttons {
-  gap: 5px;
-  margin-top: 6px;
+  gap: 4px;
+  margin-top: 4px;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .choice-button {
-  padding: 7px 9px;
-  font-size: 0.7rem;
+  padding: 6px 8px;
+  font-size: 0.64rem;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .player-hand {
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 3px;
+  margin-top: 4px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
   align-items: stretch;
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .hand-card {
-  flex: 0 0 clamp(34px, 5vw, 46px);
+  flex: 0 0 clamp(28px, 4vw, 38px);
   width: auto;
-  min-height: 58px;
-  padding: 4px 3px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(7, 24, 17, 0.12);
+  min-height: 48px;
+  padding: 3px 2px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(7, 24, 17, 0.12);
 }
 
 body[data-game-stage="game"][data-viewport="compact"] .hand-card .card-center {
-  height: 24px;
-  font-size: 0.88rem;
+  height: 18px;
+  font-size: 0.72rem;
 }
