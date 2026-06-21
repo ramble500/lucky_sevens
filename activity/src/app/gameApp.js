@@ -219,6 +219,7 @@ export function startGameApp({ discord } = {}) {
         : "idle";
 
     document.body.dataset.roomStage = roomStage;
+    document.body.dataset.gameStage = state.started ? "game" : "idle";
 
     roomPlayerNameElement.disabled = joined || roomSession.inFlight;
     roomCodeInputElement.disabled = joined || roomSession.inFlight;

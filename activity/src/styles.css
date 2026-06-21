@@ -1203,15 +1203,15 @@ body[data-room-stage="game"] .room-status {
   }
 }
 
-body[data-room-stage="game"][data-viewport="compact"] {
+body[data-game-stage="game"][data-viewport="compact"] {
   overflow: hidden;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .hero {
+body[data-game-stage="game"][data-viewport="compact"] .hero {
   display: none;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .page-shell {
+body[data-game-stage="game"][data-viewport="compact"] .page-shell {
   display: flex;
   flex-direction: column;
   width: min(100% - 8px, 1280px);
@@ -1220,7 +1220,7 @@ body[data-room-stage="game"][data-viewport="compact"] .page-shell {
   padding-bottom: calc(4px + var(--safe-bottom));
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .game-layout {
+body[data-game-stage="game"][data-viewport="compact"] .game-layout {
   flex: 1;
   grid-template-columns: 1fr;
   grid-template-areas:
@@ -1231,58 +1231,58 @@ body[data-room-stage="game"][data-viewport="compact"] .game-layout {
   margin-top: 0;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .side-panel,
-body[data-room-stage="game"][data-viewport="compact"] .discard-panel,
-body[data-room-stage="game"][data-viewport="compact"] .mini-cards,
-body[data-room-stage="game"][data-viewport="compact"] .board-head p,
-body[data-room-stage="game"][data-viewport="compact"] .player-head .eyebrow,
-body[data-room-stage="game"][data-viewport="compact"] .card-note {
+body[data-game-stage="game"][data-viewport="compact"] .side-panel,
+body[data-game-stage="game"][data-viewport="compact"] .discard-panel,
+body[data-game-stage="game"][data-viewport="compact"] .mini-cards,
+body[data-game-stage="game"][data-viewport="compact"] .board-head p,
+body[data-game-stage="game"][data-viewport="compact"] .player-head .eyebrow,
+body[data-game-stage="game"][data-viewport="compact"] .card-note {
   display: none;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .table-panel,
-body[data-room-stage="game"][data-viewport="compact"] .player-panel {
+body[data-game-stage="game"][data-viewport="compact"] .table-panel,
+body[data-game-stage="game"][data-viewport="compact"] .player-panel {
   padding: 8px;
   border-radius: 18px;
   overflow: hidden;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .table-panel {
+body[data-game-stage="game"][data-viewport="compact"] .table-panel {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .table-meta {
+body[data-game-stage="game"][data-viewport="compact"] .table-meta {
   gap: 6px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .pill {
+body[data-game-stage="game"][data-viewport="compact"] .pill {
   min-height: 30px;
   padding: 0 10px;
   font-size: 0.74rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .opponents {
+body[data-game-stage="game"][data-viewport="compact"] .opponents {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-top: 6px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .opponent-card {
+body[data-game-stage="game"][data-viewport="compact"] .opponent-card {
   padding: 7px 8px;
   border-radius: 14px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .opponent-name {
+body[data-game-stage="game"][data-viewport="compact"] .opponent-name {
   font-size: 0.8rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .opponent-meta {
+body[data-game-stage="game"][data-viewport="compact"] .opponent-meta {
   margin-top: 2px;
   font-size: 0.68rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-panel {
+body[data-game-stage="game"][data-viewport="compact"] .board-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   margin-top: 6px;
@@ -1290,88 +1290,88 @@ body[data-room-stage="game"][data-viewport="compact"] .board-panel {
   border-radius: 16px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-head {
+body[data-game-stage="game"][data-viewport="compact"] .board-head {
   gap: 2px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-head h2,
-body[data-room-stage="game"][data-viewport="compact"] .player-head h2 {
+body[data-game-stage="game"][data-viewport="compact"] .board-head h2,
+body[data-game-stage="game"][data-viewport="compact"] .player-head h2 {
   font-size: 0.96rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board {
+body[data-game-stage="game"][data-viewport="compact"] .board {
   gap: 3px;
   margin-top: 6px;
   overflow: hidden;
   align-content: start;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-row {
+body[data-game-stage="game"][data-viewport="compact"] .board-row {
   grid-template-columns: 20px repeat(13, minmax(0, 1fr));
   gap: 2px;
   min-width: 0;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .suit-label {
+body[data-game-stage="game"][data-viewport="compact"] .suit-label {
   height: 24px;
   border-radius: 9px;
   font-size: 0.76rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-slot,
-body[data-room-stage="game"][data-viewport="compact"] .playing-card {
+body[data-game-stage="game"][data-viewport="compact"] .board-slot,
+body[data-game-stage="game"][data-viewport="compact"] .playing-card {
   min-height: 24px;
   border-radius: 8px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .board-slot {
+body[data-game-stage="game"][data-viewport="compact"] .board-slot {
   padding: 1px;
   font-size: 0.62rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .playing-card {
+body[data-game-stage="game"][data-viewport="compact"] .playing-card {
   gap: 0;
   box-shadow: none;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .card-center {
+body[data-game-stage="game"][data-viewport="compact"] .card-center {
   font-size: 0.72rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .player-panel {
+body[data-game-stage="game"][data-viewport="compact"] .player-panel {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .player-head {
+body[data-game-stage="game"][data-viewport="compact"] .player-head {
   gap: 2px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .hand-hint {
+body[data-game-stage="game"][data-viewport="compact"] .hand-hint {
   font-size: 0.68rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .action-panel {
+body[data-game-stage="game"][data-viewport="compact"] .action-panel {
   margin-top: 6px;
   padding: 8px;
   border-radius: 14px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .action-title {
+body[data-game-stage="game"][data-viewport="compact"] .action-title {
   font-size: 0.74rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .action-buttons {
+body[data-game-stage="game"][data-viewport="compact"] .action-buttons {
   gap: 5px;
   margin-top: 6px;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .choice-button {
+body[data-game-stage="game"][data-viewport="compact"] .choice-button {
   padding: 7px 9px;
   font-size: 0.7rem;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .player-hand {
+body[data-game-stage="game"][data-viewport="compact"] .player-hand {
   display: flex;
   flex-wrap: nowrap;
   gap: 4px;
@@ -1382,7 +1382,7 @@ body[data-room-stage="game"][data-viewport="compact"] .player-hand {
   align-items: stretch;
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .hand-card {
+body[data-game-stage="game"][data-viewport="compact"] .hand-card {
   flex: 0 0 clamp(34px, 5vw, 46px);
   width: auto;
   min-height: 58px;
@@ -1391,7 +1391,7 @@ body[data-room-stage="game"][data-viewport="compact"] .hand-card {
   box-shadow: 0 4px 10px rgba(7, 24, 17, 0.12);
 }
 
-body[data-room-stage="game"][data-viewport="compact"] .hand-card .card-center {
+body[data-game-stage="game"][data-viewport="compact"] .hand-card .card-center {
   height: 24px;
   font-size: 0.88rem;
 }
