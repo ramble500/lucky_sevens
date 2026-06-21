@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>幸運の七並べ Activity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,18 +15,17 @@
         <p class="eyebrow">Discord Activity Prototype</p>
         <h1>幸運の七並べ</h1>
         <p class="lead">
-          3人で遊ぶ変則七並べです。スペードの7を持っているプレイヤーが最初にそれを出し、
-          そのあと時計回りで進行します。
+          3人で遊ぶ変則七並べです。スペードの7が開始時に自動で場へ出て、そこから時計回りに進行します。
         </p>
       </div>
       <div class="hero-actions">
         <section class="activity-status-card" aria-live="polite">
           <p class="eyebrow">Runtime</p>
           <p id="runtime-label" class="activity-status-title">ローカルブラウザ確認</p>
-          <p id="runtime-note" class="activity-status-note">Discord 外でも画面とルールの確認はできます。</p>
-          <p id="participant-summary" class="activity-status-summary">参加者表示は Discord 起動時に有効になります。</p>
+          <p id="runtime-note" class="activity-status-note">Discord 内でも画面とルールを確認できます。</p>
+          <p id="participant-summary" class="activity-status-summary">参加者表示は Discord 接続時に有効になります。</p>
           <div id="participant-list" class="participant-list">
-            <span class="participant-chip participant-chip-empty">Discord 内で起動すると表示されます</span>
+            <span class="participant-chip participant-chip-empty">Discord 上で起動すると参加者が表示されます</span>
           </div>
           <button id="invite-button" class="secondary-button" type="button" hidden>Discordで招待する</button>
 
@@ -34,7 +33,7 @@
             <p class="eyebrow">Room</p>
             <label class="room-field" for="room-player-name">
               <span class="room-field-label">表示名</span>
-              <input id="room-player-name" class="room-input" type="text" maxlength="20" value="Player" />
+              <input id="room-player-name" class="room-input" type="text" maxlength="20" value="Player">
             </label>
 
             <div class="room-row">
@@ -42,15 +41,16 @@
             </div>
 
             <div class="room-join-row">
-              <input id="room-code-input" class="room-input room-code-input" type="text" maxlength="4" placeholder="部屋コード" />
+              <input id="room-code-input" class="room-input room-code-input" type="text" maxlength="4" placeholder="部屋コード">
               <button id="room-join-button" class="secondary-button" type="button">参加</button>
             </div>
 
-            <p id="room-status" class="room-status">room server に接続していません。</p>
+            <p id="room-status" class="room-status">room server に接続しています...</p>
             <div id="room-seat-list" class="room-seat-list" aria-live="polite"></div>
 
             <div class="room-controls">
               <button id="room-start-button" class="secondary-button" type="button" disabled>3人で開始</button>
+              <button id="room-start-cpu-button" class="secondary-button" type="button" disabled>CPUで埋めて開始</button>
               <button id="room-leave-button" class="secondary-button" type="button" disabled>部屋を出る</button>
             </div>
           </section>
@@ -62,7 +62,7 @@
     <main class="game-layout">
       <section class="table-panel">
         <div class="table-meta">
-          <div class="pill" id="turn-pill">配布中...</div>
+          <div class="pill" id="turn-pill">進行中...</div>
           <div class="pill subtle" id="phase-pill">ゲーム準備中</div>
         </div>
 
@@ -71,7 +71,7 @@
         <section class="board-panel">
           <div class="board-head">
             <h2>場札</h2>
-            <p>出せるカードは 7 の前後につながる同じマークだけです。</p>
+            <p>出せるカードは 7 の左右につながる同じマークだけです。</p>
           </div>
           <div id="board" class="board" aria-live="polite"></div>
         </section>
@@ -82,16 +82,11 @@
           <h2>遊び方</h2>
           <ul>
             <li>3人で対戦し、スペードの7を持つ人が開始時にそれを出します。</li>
-            <li>ほかの 7 は普通の手札として扱います。</li>
-            <li>出せるカードがあるなら、必ず 1 枚を場に出します。</li>
-            <li>出せるカードがないなら、手札から 1 枚を捨てます。</li>
-            <li>ジョーカーは「小王」と「大王」が 1 枚ずつあり、対応する側だけの代用として使えます。</li>
+            <li>ほかの7は通常の手札として使います。</li>
+            <li>出せるカードがあるなら必ず1枚場に出します。</li>
+            <li>出せるカードがないなら、手札から1枚を捨てます。</li>
+            <li>ジョーカーは「小王」と「大王」が1枚ずつあり、条件に応じて代用できます。</li>
             <li>全員の手札がなくなったら、捨て札点で順位を決めます。</li>
-            <li>同点なら、順番が若いプレイヤーが勝ちます。</li>
-            <li>1位が 2位から 1 点、3位から 2 点を受け取り、倍率を掛けて精算します。</li>
-            <li>7上がりは 8 倍、小王・大王上がりは 4 倍、捨て札 0 枚上がりは 2 倍です。</li>
-            <li>1 枚も場に出さずに全捨てした場合は、得点を無視して 8 倍勝ちです。</li>
-            <li>負け側は捨て札点が 40 / 60 / 80 点以上で 2 / 4 / 8 倍になります。</li>
           </ul>
         </section>
 
@@ -103,7 +98,7 @@
         </section>
 
         <section class="results-card">
-          <h2>得点と精算</h2>
+          <h2>点数と順位</h2>
           <ol id="score-list" class="score-list" aria-live="polite"></ol>
         </section>
       </aside>
@@ -114,7 +109,7 @@
             <p class="eyebrow">Your Hand</p>
             <h2>あなたの手札</h2>
           </div>
-          <p id="hand-hint" class="hand-hint">配っています...</p>
+          <p id="hand-hint" class="hand-hint">配り直し中...</p>
         </div>
         <section id="action-panel" class="action-panel" hidden>
           <p id="action-title" class="action-title"></p>

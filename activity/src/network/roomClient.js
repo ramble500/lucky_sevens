@@ -141,8 +141,8 @@ export function createRoomClient(options = {}) {
     async leaveRoom() {
       return request(ROOM_EVENTS.ROOM_LEAVE, {});
     },
-    async startRoomGame() {
-      return request(ROOM_EVENTS.ROOM_START, {});
+    async startRoomGame(payload = {}) {
+      return request(ROOM_EVENTS.ROOM_START, payload);
     },
     async sendGameAction(payload) {
       return request(ROOM_EVENTS.GAME_ACTION, payload);

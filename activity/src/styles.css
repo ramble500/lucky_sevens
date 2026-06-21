@@ -1,4 +1,10 @@
 :root {
+  --app-width: 100vw;
+  --app-height: 100vh;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --bg-top: #154734;
   --bg-bottom: #081f17;
   --panel: rgba(246, 242, 230, 0.95);
@@ -20,15 +26,25 @@
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+}
+
 [hidden] {
   display: none !important;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: var(--app-height);
   font-family: "M PLUS Rounded 1c", sans-serif;
   color: var(--text);
+  overflow-x: hidden;
+  padding:
+    var(--safe-top)
+    var(--safe-right)
+    var(--safe-bottom)
+    var(--safe-left);
   background:
     radial-gradient(circle at top, rgba(255, 219, 124, 0.15), transparent 26%),
     linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
@@ -39,7 +55,7 @@ button {
 }
 
 .page-shell {
-  width: min(1360px, calc(100% - 24px));
+  width: min(1360px, calc(var(--app-width) - 24px));
   margin: 0 auto;
   padding: 16px 0 20px;
 }
@@ -165,6 +181,10 @@ button {
   margin-top: 12px;
 }
 
+.room-controls > .secondary-button {
+  flex: 1 1 160px;
+}
+
 .room-join-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -239,6 +259,8 @@ body[data-room-stage="game"] .room-field,
 body[data-room-stage="game"] .room-row,
 body[data-room-stage="game"] .room-join-row,
 body[data-room-stage="game"] .room-seat-list,
+body[data-room-stage="game"] #room-start-button,
+body[data-room-stage="game"] #room-start-cpu-button,
 body[data-room-stage="game"] #invite-button {
   display: none;
 }
@@ -807,8 +829,9 @@ body[data-room-stage="game"] .room-status {
 
 @media (max-width: 640px) {
   .page-shell {
-    width: min(100% - 18px, 1220px);
-    padding-top: 18px;
+    width: min(100% - 12px, 1220px);
+    padding-top: 10px;
+    padding-bottom: calc(14px + var(--safe-bottom));
   }
 
   .hero,
@@ -818,25 +841,128 @@ body[data-room-stage="game"] .room-status {
     border-radius: 22px;
   }
 
+  .hero,
+  .table-panel,
+  .side-panel,
+  .player-panel {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .hero {
+    gap: 12px;
+  }
+
+  .activity-status-card {
+    min-width: 0;
+    width: 100%;
+    padding: 12px;
+  }
+
+  .room-status,
+  .activity-status-note,
+  .activity-status-summary,
+  .lead,
+  .rules-card ul,
+  .log-list,
+  .score-list,
+  .hand-hint {
+    font-size: 0.88rem;
+  }
+
   .board-panel {
-    padding: 14px;
+    padding: 10px;
   }
 
   .board {
     overflow-x: auto;
     padding-bottom: 6px;
+    margin-inline: -2px;
   }
 
   .board-row {
-    min-width: 670px;
+    min-width: max(560px, calc(var(--app-width) - 42px));
   }
 
   .player-hand {
-    gap: 10px;
+    gap: 8px;
   }
 
   .hand-card {
-    width: calc(50% - 5px);
-    min-height: 114px;
+    width: calc(50% - 4px);
+    min-height: 102px;
+    padding: 7px;
+  }
+
+  .discard-card {
+    width: calc(33.333% - 6px);
+    min-height: 72px;
+  }
+
+  .room-controls {
+    flex-direction: column;
+  }
+
+  .room-controls > .secondary-button,
+  .room-row > .secondary-button,
+  .room-join-row > .secondary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .page-shell {
+    width: min(100% - 8px, 1220px);
+  }
+
+  .hero {
+    padding: 12px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.45rem, 7vw, 1.8rem);
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+  }
+
+  .table-panel,
+  .side-panel,
+  .player-panel {
+    padding: 10px;
+  }
+
+  .board-head {
+    gap: 8px;
+  }
+
+  .board-row {
+    grid-template-columns: 34px repeat(13, minmax(24px, 1fr));
+    min-width: max(500px, calc(var(--app-width) - 26px));
+  }
+
+  .suit-label,
+  .board-slot,
+  .playing-card {
+    min-height: 32px;
+  }
+
+  .card-center {
+    font-size: 0.78rem;
+  }
+
+  .hand-card {
+    min-height: 94px;
+  }
+
+  .hand-card .card-center {
+    height: 36px;
+    font-size: 0.94rem;
+  }
+
+  .card-note {
+    font-size: 0.54rem;
   }
 }

@@ -20,6 +20,7 @@ import {
   pushGameLog,
   createPublicGameView,
 } from "../src/shared/rules.js";
+import { chooseCpuPlay, chooseCpuDiscard } from "../src/shared/ai.js";
 import { ROOM_CAPACITY, ROOM_EVENTS, normalizeRoomCode } from "../src/shared/roomProtocol.js";
 
 const PORT = Number(process.env.PORT || 3001);
@@ -27,6 +28,7 @@ const HOST = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const ROOM_IDLE_TTL_MS = 1000 * 60 * 60 * 4;
 const SHOULD_SERVE_STATIC = process.env.SERVE_STATIC === "1" || process.env.NODE_ENV === "production";
+const CPU_NAMES = ["CPU 1", "CPU 2"];
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = path.resolve(SERVER_DIR, "../dist");
@@ -68,21 +70,22 @@ function distPathFromRequestPath(pathname) {
 }
 
 async function readDistFile(filePath) {
-  const fileBuffer = await fs.readFile(filePath);
+  const body = await fs.readFile(filePath);
   const extension = path.extname(filePath).toLowerCase();
+
   return {
-    body: fileBuffer,
+    body,
     contentType: MIME_TYPES[extension] || "application/octet-stream",
   };
 }
 
-async function serveSpaIndex(response) {
+async function serveSpaIndex(responseObject) {
   const { body, contentType } = await readDistFile(DIST_INDEX_PATH);
-  response.writeHead(200, { "Content-Type": contentType });
-  response.end(body);
+  responseObject.writeHead(200, { "Content-Type": contentType });
+  responseObject.end(body);
 }
 
-async function tryServeStatic(request, response, requestUrl) {
+async function tryServeStatic(request, responseObject, requestUrl) {
   if (!SHOULD_SERVE_STATIC || request.method !== "GET") {
     return false;
   }
@@ -96,8 +99,8 @@ async function tryServeStatic(request, response, requestUrl) {
   if (candidatePath) {
     try {
       const { body, contentType } = await readDistFile(candidatePath);
-      response.writeHead(200, { "Content-Type": contentType });
-      response.end(body);
+      responseObject.writeHead(200, { "Content-Type": contentType });
+      responseObject.end(body);
       return true;
     } catch (error) {
       if (error?.code !== "ENOENT" && error?.code !== "EISDIR") {
@@ -107,7 +110,7 @@ async function tryServeStatic(request, response, requestUrl) {
   }
 
   try {
-    await serveSpaIndex(response);
+    await serveSpaIndex(responseObject);
     return true;
   } catch (error) {
     if (error?.code === "ENOENT") {
@@ -118,12 +121,12 @@ async function tryServeStatic(request, response, requestUrl) {
   }
 }
 
-async function handleHttpRequest(request, response) {
+async function handleHttpRequest(request, responseObject) {
   const requestUrl = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
   if (requestUrl.pathname === "/health") {
-    response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-    response.end(JSON.stringify({
+    responseObject.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    responseObject.end(JSON.stringify({
       ok: true,
       rooms: rooms.size,
       serveStatic: SHOULD_SERVE_STATIC,
@@ -131,23 +134,23 @@ async function handleHttpRequest(request, response) {
     return;
   }
 
-  if (await tryServeStatic(request, response, requestUrl)) {
+  if (await tryServeStatic(request, responseObject, requestUrl)) {
     return;
   }
 
-  response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
-  response.end(JSON.stringify({ ok: false, error: "not-found" }));
+  responseObject.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+  responseObject.end(JSON.stringify({ ok: false, error: "not-found" }));
 }
 
-const httpServer = createServer((request, response) => {
-  void handleHttpRequest(request, response).catch((error) => {
+const httpServer = createServer((request, responseObject) => {
+  void handleHttpRequest(request, responseObject).catch((error) => {
     console.error("HTTP request failed.", error);
 
-    if (!response.headersSent) {
-      response.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
+    if (!responseObject.headersSent) {
+      responseObject.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
     }
 
-    response.end(JSON.stringify({ ok: false, error: "internal-server-error" }));
+    responseObject.end(JSON.stringify({ ok: false, error: "internal-server-error" }));
   });
 });
 
@@ -169,40 +172,71 @@ function createRoomCode() {
   return code;
 }
 
-function buildSeatSnapshot(player, seat, viewerSocketId) {
-  if (!player) {
+function getHumanPlayerAtSeat(room, seat) {
+  return room.players.find((player) => player.seat === seat) || null;
+}
+
+function buildSeatSnapshot(room, seat, viewerSocketId) {
+  const player = getHumanPlayerAtSeat(room, seat);
+
+  if (player) {
     return {
-      seat,
-      empty: true,
+      empty: false,
+      seat: player.seat,
+      playerId: player.id,
+      name: player.name,
+      isYou: player.socketId === viewerSocketId,
+      connected: true,
+      discordId: player.discordId || null,
+      isOwner: player.seat === room.ownerSeat,
+      isCpu: false,
     };
   }
 
+  if (room.gameState) {
+    const gamePlayer = getPlayerById(room.gameState, seat);
+    if (gamePlayer && !gamePlayer.isHuman) {
+      return {
+        empty: false,
+        seat,
+        playerId: gamePlayer.id,
+        name: gamePlayer.name,
+        isYou: false,
+        connected: true,
+        discordId: null,
+        isOwner: false,
+        isCpu: true,
+      };
+    }
+  }
+
   return {
-    empty: false,
-    seat: player.seat,
-    playerId: player.id,
-    name: player.name,
-    isYou: player.socketId === viewerSocketId,
-    connected: true,
-    discordId: player.discordId || null,
+    seat,
+    empty: true,
+    isOwner: seat === room.ownerSeat,
+    isCpu: false,
   };
 }
 
 function buildRoomSnapshot(room, viewerSocketId) {
+  const viewer = room.players.find((player) => player.socketId === viewerSocketId) || null;
+  const isOwner = Boolean(viewer && viewer.seat === room.ownerSeat);
+  const isWaiting = room.gameState === null;
+
   return {
     code: room.code,
+    ownerSeat: room.ownerSeat,
     playerCount: room.players.length,
     capacity: ROOM_CAPACITY,
-    canStart: room.players.length === ROOM_CAPACITY && room.gameState === null,
+    isOwner,
+    canStart: isWaiting && isOwner && room.players.length === ROOM_CAPACITY,
+    canStartWithCpu: isWaiting && isOwner && room.players.length > 0 && room.players.length < ROOM_CAPACITY,
     status: room.gameState
       ? "in-game"
       : room.players.length === ROOM_CAPACITY
         ? "full"
         : "waiting",
-    seats: Array.from({ length: ROOM_CAPACITY }, (_, seat) => {
-      const player = room.players.find((entry) => entry.seat === seat);
-      return buildSeatSnapshot(player, seat, viewerSocketId);
-    }),
+    seats: Array.from({ length: ROOM_CAPACITY }, (_, seat) => buildSeatSnapshot(room, seat, viewerSocketId)),
   };
 }
 
@@ -235,7 +269,7 @@ function getPlayerRecord(room, socketId) {
     return null;
   }
 
-  return room.players.find((player) => player.seat === membership.seat) || null;
+  return getHumanPlayerAtSeat(room, membership.seat);
 }
 
 function emitRoomUpdated(room) {
@@ -309,6 +343,7 @@ function addPlayerToRoom(socket, room, payload) {
 
   room.players.push(player);
   room.players.sort((a, b) => a.seat - b.seat);
+  room.ownerSeat ??= seat;
   socketMemberships.set(socket.id, {
     roomCode: room.code,
     seat,
@@ -332,15 +367,20 @@ function removePlayerFromRoom(socket, reason = "left") {
     return;
   }
 
-  const leavingPlayer = room.players.find((player) => player.seat === membership.seat) || null;
+  const leavingPlayer = getHumanPlayerAtSeat(room, membership.seat);
   room.players = room.players.filter((player) => player.seat !== membership.seat);
+
+  if (room.ownerSeat === membership.seat) {
+    room.ownerSeat = room.players[0]?.seat ?? null;
+  }
+
   touchRoom(room);
 
   if (room.gameState && leavingPlayer) {
     room.gameState = null;
     emitServerError(
       room,
-      `${leavingPlayer.name} が${reason === "disconnect" ? "切断" : "退出"}したため対戦を終了しました。`,
+      `${leavingPlayer.name}が${reason === "disconnect" ? "切断" : "退出"}したため対戦を終了しました。`,
     );
   }
 
@@ -351,20 +391,45 @@ function removePlayerFromRoom(socket, reason = "left") {
   }
 }
 
-function startRoomGame(room) {
+function buildPlayerConfigsForRoom(room, fillWithCpu) {
+  const playerConfigs = [];
+  let cpuIndex = 0;
+
+  for (let seat = 0; seat < ROOM_CAPACITY; seat += 1) {
+    const humanPlayer = getHumanPlayerAtSeat(room, seat);
+
+    if (humanPlayer) {
+      playerConfigs.push({
+        name: humanPlayer.name,
+        isHuman: true,
+      });
+      continue;
+    }
+
+    if (fillWithCpu) {
+      playerConfigs.push({
+        name: CPU_NAMES[cpuIndex] || `CPU ${cpuIndex + 1}`,
+        isHuman: false,
+      });
+      cpuIndex += 1;
+    }
+  }
+
+  return playerConfigs;
+}
+
+function startRoomGame(room, options = {}) {
+  const { fillWithCpu = false } = options;
   const state = createInitialState();
   state.started = true;
-  const playerConfigs = room.players
-    .sort((a, b) => a.seat - b.seat)
-    .map((player) => ({
-      name: player.name,
-      isHuman: true,
-    }));
 
+  const playerConfigs = buildPlayerConfigsForRoom(room, fillWithCpu);
   const { starter, nextPlayer } = setupRound(state, playerConfigs);
+
   state.log = [];
-  pushGameLog(state, `${nextPlayer.name} から時計回りに進行します。`);
-  pushGameLog(state, `${starter.name} が開始時に ♠7 を出しました。`);
+  pushGameLog(state, `${nextPlayer.name}から時計回りに進行します。`);
+  pushGameLog(state, `${starter.name}が開始時に♠7を出しました。`);
+
   room.gameState = state;
   touchRoom(room);
 }
@@ -373,17 +438,76 @@ function applyActionLog(state, outcome) {
   if (outcome.matchedPlacement && outcome.removedCard.kind === "joker") {
     pushGameLog(
       state,
-      `${outcome.player.name} が${jokerName(outcome.removedCard)}を${placementLabel(outcome.matchedPlacement)}として出しました。`,
+      `${outcome.player.name}が${jokerName(outcome.removedCard)}を${placementLabel(outcome.matchedPlacement)}として出しました。`,
     );
     return;
   }
 
   if (outcome.matchedPlacement) {
-    pushGameLog(state, `${outcome.player.name} が${cardLabel(outcome.removedCard)}を場に出しました。`);
+    pushGameLog(state, `${outcome.player.name}が${cardLabel(outcome.removedCard)}を場に出しました。`);
     return;
   }
 
-  pushGameLog(state, `${outcome.player.name} は手札を1枚捨てました。`);
+  pushGameLog(state, `${outcome.player.name}は手札を1枚捨てました。`);
+}
+
+function finalizeTurn(state, playerIndex) {
+  const finishedPlayer = markPlayerFinished(state, playerIndex);
+  if (finishedPlayer) {
+    pushGameLog(state, `${finishedPlayer.name}の手札がなくなりました。`);
+  }
+
+  if (!hasCardsRemaining(state)) {
+    state.result = buildGameResult(state);
+    pushGameLog(state, `${state.result.winnerName}が${state.result.winLabel}で勝ちました。`);
+    return false;
+  }
+
+  advanceTurn(state);
+  return true;
+}
+
+function runRoomCpuTurns(room) {
+  const state = room.gameState;
+  if (!state) {
+    return;
+  }
+
+  let safety = 0;
+
+  while (!state.result && safety < 120) {
+    const currentPlayer = getPlayerById(state, state.turnIndex);
+    if (!currentPlayer || currentPlayer.isHuman) {
+      break;
+    }
+
+    if (currentPlayer.hand.length === 0) {
+      if (!finalizeTurn(state, currentPlayer.id)) {
+        break;
+      }
+      safety += 1;
+      continue;
+    }
+
+    const chosenPlay = chooseCpuPlay(state, currentPlayer);
+    const outcome = chosenPlay
+      ? playCard(state, currentPlayer.id, chosenPlay.card, chosenPlay.placement)
+      : discardCard(state, currentPlayer.id, chooseCpuDiscard(currentPlayer));
+
+    if (!outcome) {
+      emitServerError(room, `${currentPlayer.name}のCPU手番で処理に失敗しました。`);
+      break;
+    }
+
+    applyActionLog(state, outcome);
+    if (!finalizeTurn(state, currentPlayer.id)) {
+      break;
+    }
+
+    safety += 1;
+  }
+
+  touchRoom(room);
 }
 
 function applyGameAction(room, seat, payload) {
@@ -426,19 +550,12 @@ function applyGameAction(room, seat, payload) {
 
   applyActionLog(state, outcome);
 
-  const finishedPlayer = markPlayerFinished(state, seat);
-  if (finishedPlayer) {
-    pushGameLog(state, `${finishedPlayer.name} の手札がなくなりました。`);
-  }
-
-  if (!hasCardsRemaining(state)) {
-    state.result = buildGameResult(state);
-    pushGameLog(state, `${state.result.winnerName} が${state.result.winLabel}で勝ちました。`);
+  if (finalizeTurn(state, seat)) {
+    runRoomCpuTurns(room);
   } else {
-    advanceTurn(state);
+    touchRoom(room);
   }
 
-  touchRoom(room);
   emitGameViews(room);
   emitRoomUpdated(room);
   return response(true);
@@ -459,6 +576,7 @@ io.on("connection", (socket) => {
     const roomCode = createRoomCode();
     const room = {
       code: roomCode,
+      ownerSeat: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       players: [],
@@ -519,15 +637,21 @@ io.on("connection", (socket) => {
     ack(response(true));
   });
 
-  socket.on(ROOM_EVENTS.ROOM_START, (_payload, ack = () => {}) => {
+  socket.on(ROOM_EVENTS.ROOM_START, (payload, ack = () => {}) => {
     const room = getRoomBySocket(socket.id);
     if (!room) {
       ack(response(false, { error: "not-in-room" }));
       return;
     }
 
-    if (room.players.length !== ROOM_CAPACITY) {
-      ack(response(false, { error: "room-not-full" }));
+    const player = getPlayerRecord(room, socket.id);
+    if (!player) {
+      ack(response(false, { error: "player-not-found" }));
+      return;
+    }
+
+    if (player.seat !== room.ownerSeat) {
+      ack(response(false, { error: "only-owner-can-start" }));
       return;
     }
 
@@ -536,7 +660,20 @@ io.on("connection", (socket) => {
       return;
     }
 
-    startRoomGame(room);
+    const fillWithCpu = Boolean(payload?.fillWithCpu);
+
+    if (fillWithCpu) {
+      if (room.players.length === 0) {
+        ack(response(false, { error: "room-empty" }));
+        return;
+      }
+    } else if (room.players.length !== ROOM_CAPACITY) {
+      ack(response(false, { error: "room-not-full" }));
+      return;
+    }
+
+    startRoomGame(room, { fillWithCpu });
+    runRoomCpuTurns(room);
     emitRoomUpdated(room);
     emitGameViews(room);
     ack(response(true, {

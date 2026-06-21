@@ -23,19 +23,21 @@ import { ROOM_CAPACITY, normalizeRoomCode } from "../shared/roomProtocol.js";
 const PLAYER_NAME_STORAGE_KEY = "koun7-activity-player-name";
 
 const ROOM_ERROR_LABELS = {
-  "already-in-room": "すでに部屋に参加しています。",
+  "already-in-room": "すでに部屋へ参加しています。",
   "room-not-found": "その部屋コードは見つかりませんでした。",
   "game-already-started": "その部屋ではすでに対戦が始まっています。",
   "room-full": "その部屋は満席です。",
+  "room-empty": "1人以上参加してから開始してください。",
   "not-in-room": "まだ部屋に参加していません。",
-  "room-not-full": "3人そろうまでは開始できません。",
+  "room-not-full": "3人そろうまでは通常開始できません。",
   "game-not-started": "まだ対戦が始まっていません。",
   "game-already-finished": "その対戦はすでに終了しています。",
+  "only-owner-can-start": "部屋主だけが対戦を開始できます。",
   "not-your-turn": "いまはあなたの手番ではありません。",
   "player-not-found": "プレイヤー情報が見つかりませんでした。",
   "card-not-found": "そのカードは手札にありません。",
-  "unsupported-action": "未対応の操作が送られました。",
-  "illegal-action": "その操作はこの局面では行えません。",
+  "unsupported-action": "未対応の操作です。",
+  "illegal-action": "その操作はルール上できません。",
 };
 
 function participantDisplayName(participant) {
@@ -47,9 +49,7 @@ function getViewerPlayerId(state) {
 }
 
 function sanitizePlayerName(value) {
-  return String(value || "")
-    .trim()
-    .slice(0, 20) || "Player";
+  return String(value || "").trim().slice(0, 20) || "Player";
 }
 
 function roomErrorLabel(errorCode) {
@@ -76,6 +76,7 @@ export function startGameApp({ discord } = {}) {
   const roomCreateButtonElement = document.getElementById("room-create-button");
   const roomJoinButtonElement = document.getElementById("room-join-button");
   const roomStartButtonElement = document.getElementById("room-start-button");
+  const roomStartCpuButtonElement = document.getElementById("room-start-cpu-button");
   const roomLeaveButtonElement = document.getElementById("room-leave-button");
   const roomStatusElement = document.getElementById("room-status");
   const roomSeatListElement = document.getElementById("room-seat-list");
@@ -143,26 +144,26 @@ export function startGameApp({ discord } = {}) {
       participantSummaryElement.textContent = `参加者 ${participants.length} / ${ROOM_CAPACITY}`;
       inviteButtonElement.hidden = false;
       inviteButtonElement.disabled = false;
-      renderParticipantList(participants, "まだ参加者はいません");
+      renderParticipantList(participants, "まだ参加者がいません");
       return;
     }
 
     runtimeLabelElement.textContent = "ローカルブラウザ確認";
 
     if (snapshot.reason === "client-id-missing") {
-      runtimeNoteElement.textContent = ".env の VITE_DISCORD_CLIENT_ID を設定すると Discord 接続を試せます。";
+      runtimeNoteElement.textContent = ".env の VITE_DISCORD_CLIENT_ID を設定すると Discord 起動を試せます。";
     } else if (snapshot.reason === "sdk-ready-timeout") {
-      runtimeNoteElement.textContent = "Discord SDK の応答が遅かったため、通常ブラウザ表示で続行しています。";
+      runtimeNoteElement.textContent = "Discord SDK の応答が遅かったため、通常ブラウザ表示に切り替えています。";
     } else if (snapshot.reason === "sdk-ready-failed") {
-      runtimeNoteElement.textContent = "Discord SDK に接続できなかったため、通常ブラウザとして動かしています。";
+      runtimeNoteElement.textContent = "Discord SDK への接続に失敗したため、通常ブラウザ表示で続行しています。";
     } else {
-      runtimeNoteElement.textContent = "Discord 外でも画面とルールの確認はできます。";
+      runtimeNoteElement.textContent = "Discord 外でも画面とルールの確認ができます。";
     }
 
-    participantSummaryElement.textContent = "参加者表示は Discord 起動時に有効になります。";
+    participantSummaryElement.textContent = "参加者表示は Discord 接続時に有効になります。";
     inviteButtonElement.hidden = true;
     inviteButtonElement.disabled = true;
-    renderParticipantList([], "Discord 内で起動すると表示されます");
+    renderParticipantList([], "Discord 上で起動すると参加者が表示されます");
   }
 
   function renderRoomSeats(room) {
@@ -183,7 +184,23 @@ export function startGameApp({ discord } = {}) {
 
       const name = document.createElement("p");
       name.className = "room-seat-name";
-      name.textContent = seatInfo.empty ? "空席" : `${seatInfo.name}${seatInfo.isYou ? " (あなた)" : ""}`;
+
+      if (seatInfo.empty) {
+        name.textContent = "空席";
+      } else {
+        const suffixes = [];
+        if (seatInfo.isYou) {
+          suffixes.push("あなた");
+        }
+        if (seatInfo.isOwner) {
+          suffixes.push("部屋主");
+        }
+        if (seatInfo.isCpu) {
+          suffixes.push("CPU");
+        }
+
+        name.textContent = `${seatInfo.name}${suffixes.length > 0 ? ` (${suffixes.join(" / ")})` : ""}`;
+      }
 
       seat.append(title, name);
       roomSeatListElement.appendChild(seat);
@@ -208,6 +225,7 @@ export function startGameApp({ discord } = {}) {
     roomCreateButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight;
     roomJoinButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight || !canJoinWithCode;
     roomStartButtonElement.disabled = !joinedRoom?.canStart || roomSession.inFlight;
+    roomStartCpuButtonElement.disabled = !joinedRoom?.canStartWithCpu || roomSession.inFlight;
     roomLeaveButtonElement.disabled = !joined || roomSession.inFlight;
 
     restartButtonElement.disabled = state.playMode === "room";
@@ -217,13 +235,27 @@ export function startGameApp({ discord } = {}) {
 
     if (joinedRoom) {
       if (state.playMode === "room") {
-        roomStatusElement.textContent = `部屋 ${joinedRoom.code} で対戦中です。必要なら「部屋を出る」でローカル練習に戻れます。`;
+        roomStatusElement.textContent = `部屋 ${joinedRoom.code} で対戦中です。終わるか、部屋を出るとローカル練習に戻ります。`;
       } else {
-        const startHint = joinedRoom.canStart
-          ? "3人そろいました。開始できます。"
-          : `${joinedRoom.playerCount} / ${joinedRoom.capacity} 人が参加中です。`;
+        let startHint = `${joinedRoom.playerCount} / ${joinedRoom.capacity} 人が参加中です。`;
+
+        if (joinedRoom.canStart) {
+          startHint = joinedRoom.isOwner
+            ? "3人そろいました。部屋主が開始できます。"
+            : "3人そろいました。部屋主の開始を待っています。";
+        } else if (joinedRoom.canStartWithCpu) {
+          startHint = joinedRoom.isOwner
+            ? "部屋主なら CPU を入れて開始できます。"
+            : "人数が足りません。部屋主が CPU を入れて開始することもできます。";
+        } else if (joinedRoom.isOwner) {
+          startHint = "参加者がそろうのを待っています。";
+        } else {
+          startHint = "部屋主の開始を待っています。";
+        }
+
         roomStatusElement.textContent = `部屋 ${joinedRoom.code} に参加中です。${startHint}`;
       }
+
       roomCodeInputElement.value = joinedRoom.code;
       renderRoomSeats(joinedRoom);
       return;
@@ -232,11 +264,11 @@ export function startGameApp({ discord } = {}) {
     renderRoomSeats(null);
 
     if (!roomSession.connected) {
-      roomStatusElement.textContent = roomSession.connectionError || "room server に接続中です。";
+      roomStatusElement.textContent = roomSession.connectionError || "room server に接続しています...";
       return;
     }
 
-    roomStatusElement.textContent = `room server 接続済みです。部屋を作るか、4文字のコードで参加してください。`;
+    roomStatusElement.textContent = "room server に接続済みです。部屋を作るか、部屋コードで参加してください。";
   }
 
   async function handleInviteClick() {
@@ -340,17 +372,17 @@ export function startGameApp({ discord } = {}) {
     render();
 
     try {
-      const response = await roomClient.sendGameAction(payload);
-      if (!response?.ok) {
+      const result = await roomClient.sendGameAction(payload);
+      if (!result?.ok) {
         state.busy = false;
         clearPendingAction();
-        addLog(roomErrorLabel(response?.error || "unknown"));
+        addLog(roomErrorLabel(result?.error || "unknown"));
         render();
       }
     } catch (error) {
       state.busy = false;
       clearPendingAction();
-      addLog(`room server への送信に失敗しました: ${error.message}`);
+      addLog(`room server との通信に失敗しました: ${error.message}`);
       render();
     }
   }
@@ -376,7 +408,7 @@ export function startGameApp({ discord } = {}) {
 
     if (state.playMode === "room") {
       clearPendingAction();
-      sendRoomAction({
+      void sendRoomAction({
         type: "play",
         cardId: card.id,
         placement: placements[0],
@@ -391,7 +423,7 @@ export function startGameApp({ discord } = {}) {
     if (context.mustDiscard) {
       if (state.playMode === "room") {
         clearPendingAction();
-        sendRoomAction({
+        void sendRoomAction({
           type: "discard",
           cardId: card.id,
         });
@@ -415,7 +447,7 @@ export function startGameApp({ discord } = {}) {
 
     if (state.playMode === "room") {
       clearPendingAction();
-      sendRoomAction({
+      void sendRoomAction({
         type: "play",
         cardId,
         placement,
@@ -521,18 +553,18 @@ export function startGameApp({ discord } = {}) {
 
   async function handleCreateRoom() {
     await withRoomRequest(async () => {
-      const response = await roomClient.createRoom({
+      const result = await roomClient.createRoom({
         playerName: currentPlayerName(),
       });
 
-      if (!response?.ok) {
-        addLog(roomErrorLabel(response?.error || "unknown"));
+      if (!result?.ok) {
+        addLog(roomErrorLabel(result?.error || "unknown"));
         return;
       }
 
-      roomSession.currentRoom = response.room;
-      roomCodeInputElement.value = response.roomCode;
-      addLog(`部屋 ${response.roomCode} を作りました。あと ${ROOM_CAPACITY - 1} 人で開始できます。`);
+      roomSession.currentRoom = result.room;
+      roomCodeInputElement.value = result.roomCode;
+      addLog(`部屋 ${result.roomCode} を作成しました。あと ${ROOM_CAPACITY - 1} 人まで参加できます。`);
       render();
     });
   }
@@ -542,32 +574,34 @@ export function startGameApp({ discord } = {}) {
       const roomCode = normalizeRoomCode(roomCodeInputElement.value);
       roomCodeInputElement.value = roomCode;
 
-      const response = await roomClient.joinRoom({
+      const result = await roomClient.joinRoom({
         roomCode,
         playerName: currentPlayerName(),
       });
 
-      if (!response?.ok) {
-        addLog(roomErrorLabel(response?.error || "unknown"));
+      if (!result?.ok) {
+        addLog(roomErrorLabel(result?.error || "unknown"));
         return;
       }
 
-      roomSession.currentRoom = response.room;
-      addLog(`部屋 ${response.roomCode} に参加しました。`);
+      roomSession.currentRoom = result.room;
+      addLog(`部屋 ${result.roomCode} に参加しました。`);
       render();
     });
   }
 
-  async function handleStartRoom() {
+  async function handleStartRoom(fillWithCpu = false) {
     await withRoomRequest(async () => {
-      const response = await roomClient.startRoomGame();
-      if (!response?.ok) {
-        addLog(roomErrorLabel(response?.error || "unknown"));
+      const result = await roomClient.startRoomGame({ fillWithCpu });
+      if (!result?.ok) {
+        addLog(roomErrorLabel(result?.error || "unknown"));
         return;
       }
 
-      roomSession.currentRoom = response.room;
-      addLog("部屋対戦を開始しました。サーバーからの配札を待っています。");
+      roomSession.currentRoom = result.room;
+      addLog(fillWithCpu
+        ? "CPU で空席を埋めて対戦を開始しました。"
+        : "部屋対戦を開始しました。");
       render();
     });
   }
@@ -575,19 +609,21 @@ export function startGameApp({ discord } = {}) {
   async function handleLeaveRoom() {
     await withRoomRequest(async () => {
       const joinedCode = roomSession.currentRoom?.code || "";
-      const response = await roomClient.leaveRoom();
-      if (!response?.ok) {
-        addLog(roomErrorLabel(response?.error || "unknown"));
+      const result = await roomClient.leaveRoom();
+      if (!result?.ok) {
+        addLog(roomErrorLabel(result?.error || "unknown"));
         return;
       }
 
       roomSession.currentRoom = null;
       roomCodeInputElement.value = "";
+
       if (state.playMode === "room") {
         setupPracticeGame();
       } else {
         render();
       }
+
       addLog(joinedCode ? `部屋 ${joinedCode} から退出しました。` : "部屋から退出しました。");
       render();
     });
@@ -648,16 +684,19 @@ export function startGameApp({ discord } = {}) {
     renderRoomPanel();
   });
   roomCreateButtonElement.addEventListener("click", () => {
-    handleCreateRoom();
+    void handleCreateRoom();
   });
   roomJoinButtonElement.addEventListener("click", () => {
-    handleJoinRoom();
+    void handleJoinRoom();
   });
   roomStartButtonElement.addEventListener("click", () => {
-    handleStartRoom();
+    void handleStartRoom(false);
+  });
+  roomStartCpuButtonElement.addEventListener("click", () => {
+    void handleStartRoom(true);
   });
   roomLeaveButtonElement.addEventListener("click", () => {
-    handleLeaveRoom();
+    void handleLeaveRoom();
   });
 
   window.addEventListener("beforeunload", () => {
