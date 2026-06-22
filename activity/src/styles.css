@@ -37,7 +37,7 @@ html {
 body {
   margin: 0;
   min-height: var(--app-height);
-  font-family: "M PLUS Rounded 1c", sans-serif;
+  font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
   color: var(--text);
   overflow-x: hidden;
   padding:
@@ -366,7 +366,7 @@ body[data-screen="game"] .game-layout {
 .log-card h2,
 .results-card h2 {
   margin: 0;
-  font-family: "Zen Maru Gothic", sans-serif;
+  font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
 }
 
 .hero h1 {
@@ -789,7 +789,7 @@ body[data-screen="game"] .game-layout {
 }
 
 .discard-head h3 {
-  font-family: "Zen Maru Gothic", sans-serif;
+  font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
   font-size: 1rem;
 }
 
