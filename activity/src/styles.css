@@ -288,6 +288,61 @@ body[data-screen="lobby"] .game-layout {
   display: none;
 }
 
+body[data-screen="lobby"][data-viewport="compact"] {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .page-shell {
+  display: block;
+  width: min(100% - 10px, 720px);
+  min-height: auto;
+  padding-top: 8px;
+  padding-bottom: calc(14px + var(--safe-bottom));
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .hero {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 22px;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .hero-actions {
+  width: 100%;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .hero h1 {
+  font-size: clamp(1.45rem, 5vw, 2rem);
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .lead {
+  display: none;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .activity-status-card {
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .room-row,
+body[data-screen="lobby"][data-viewport="compact"] .room-controls {
+  flex-direction: column;
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .room-join-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-screen="lobby"][data-viewport="compact"] .room-controls > .secondary-button,
+body[data-screen="lobby"][data-viewport="compact"] .room-row > .secondary-button,
+body[data-screen="lobby"][data-viewport="compact"] .room-join-row > .secondary-button,
+body[data-screen="lobby"][data-viewport="compact"] #restart-button {
+  width: 100%;
+}
+
 body[data-screen="game"] .hero {
   display: none;
 }
