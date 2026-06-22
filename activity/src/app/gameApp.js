@@ -88,6 +88,7 @@ export function startGameApp({ discord } = {}) {
     currentRoom: null,
     inFlight: false,
     connectionError: "",
+    returningToLobby: false,
   };
 
   let unsubscribeDiscord = null;
@@ -107,6 +108,53 @@ export function startGameApp({ discord } = {}) {
       window.clearTimeout(state.cpuTimer);
       state.cpuTimer = null;
     }
+  }
+
+  function resetToLobbyState() {
+    clearCpuTimer();
+
+    const nextState = createInitialState();
+    nextState.gameId = (state.gameId || 0) + 1;
+    replaceState(state, nextState);
+    clearPendingAction();
+  }
+
+  async function returnToLobbyAfterRound({ leaveRoom = false } = {}) {
+    if (roomSession.returningToLobby) {
+      return;
+    }
+
+    roomSession.returningToLobby = true;
+    resetToLobbyState();
+    render();
+
+    if (leaveRoom && roomSession.currentRoom) {
+      roomSession.inFlight = true;
+      renderRoomPanel();
+
+      let leaveSucceeded = false;
+
+      try {
+        const result = await roomClient.leaveRoom();
+        leaveSucceeded = Boolean(result?.ok || result?.error === "not-in-room");
+
+        if (!leaveSucceeded) {
+          addLog(roomErrorLabel(result?.error || "unknown"));
+        }
+      } catch (error) {
+        addLog(`room server 縺ｨ縺ｮ騾壻ｿ｡縺ｫ螟ｱ謨励＠縺ｾ縺励◆: ${error.message}`);
+      } finally {
+        if (leaveSucceeded) {
+          roomSession.currentRoom = null;
+          roomCodeInputElement.value = "";
+        }
+
+        roomSession.inFlight = false;
+      }
+    }
+
+    roomSession.returningToLobby = false;
+    render();
   }
 
   function currentPlayerName() {
@@ -212,14 +260,16 @@ export function startGameApp({ discord } = {}) {
     const joined = Boolean(joinedRoom);
     const normalizedRoomCode = normalizeRoomCode(roomCodeInputElement.value);
     const canJoinWithCode = normalizedRoomCode.length === 4;
-    const roomStage = state.playMode === "room"
+    const isGameScreen = state.started && state.result === null;
+    const roomStage = isGameScreen && state.playMode === "room"
       ? "game"
       : joined
         ? "joined"
         : "idle";
 
     document.body.dataset.roomStage = roomStage;
-    document.body.dataset.gameStage = state.started ? "game" : "idle";
+    document.body.dataset.gameStage = isGameScreen ? "game" : "idle";
+    document.body.dataset.screen = isGameScreen ? "game" : "lobby";
 
     roomPlayerNameElement.disabled = joined || roomSession.inFlight;
     roomCodeInputElement.disabled = joined || roomSession.inFlight;
@@ -229,7 +279,7 @@ export function startGameApp({ discord } = {}) {
     roomStartCpuButtonElement.disabled = !joinedRoom?.canStartWithCpu || roomSession.inFlight;
     roomLeaveButtonElement.disabled = !joined || roomSession.inFlight;
 
-    restartButtonElement.disabled = state.playMode === "room";
+    restartButtonElement.disabled = state.playMode === "room" || joined || roomSession.inFlight || roomSession.returningToLobby;
     restartButtonElement.textContent = state.playMode === "room"
       ? "部屋対戦中"
       : "ローカル練習を配る";
@@ -320,7 +370,7 @@ export function startGameApp({ discord } = {}) {
     clearPendingAction();
     state.result = buildGameResult(state);
     addLog(`${state.result.winnerName} が ${state.result.winLabel} で勝ちました。`);
-    render();
+    void returnToLobbyAfterRound();
   }
 
   function completeTurn(playerIndex) {
@@ -529,6 +579,12 @@ export function startGameApp({ discord } = {}) {
   function applyRemoteGameView(gameView) {
     clearCpuTimer();
     const nextState = hydratePublicGameView(gameView);
+
+    if (nextState.result !== null) {
+      void returnToLobbyAfterRound({ leaveRoom: true });
+      return;
+    }
+
     nextState.gameId = (state.gameId || 0) + 1;
     nextState.busy = false;
     nextState.pendingCardId = null;
@@ -619,11 +675,8 @@ export function startGameApp({ discord } = {}) {
       roomSession.currentRoom = null;
       roomCodeInputElement.value = "";
 
-      if (state.playMode === "room") {
-        setupPracticeGame();
-      } else {
-        render();
-      }
+      resetToLobbyState();
+      render();
 
       addLog(joinedCode ? `部屋 ${joinedCode} から退出しました。` : "部屋から退出しました。");
       render();
@@ -641,7 +694,7 @@ export function startGameApp({ discord } = {}) {
       roomSession.currentRoom = room;
 
       if (state.playMode === "room" && room.status !== "in-game") {
-        setupPracticeGame();
+        void returnToLobbyAfterRound({ leaveRoom: true });
         addLog("部屋対戦が終了したため、ローカル練習に戻ります。");
         render();
         return;
@@ -707,5 +760,6 @@ export function startGameApp({ discord } = {}) {
 
   initializeDiscordPanel();
   connectRoomClient();
-  setupPracticeGame();
+  resetToLobbyState();
+  render();
 }

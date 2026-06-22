@@ -284,6 +284,18 @@ body[data-room-stage="game"] .room-status {
   margin-top: 8px;
 }
 
+body[data-screen="lobby"] .game-layout {
+  display: none;
+}
+
+body[data-screen="game"] .hero {
+  display: none;
+}
+
+body[data-screen="game"] .game-layout {
+  margin-top: 0;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   font-size: 0.8rem;
