@@ -1,4 +1,4 @@
-import { cardScore, compareCards, getPlacementsForCard, suitOrder } from "./rules.js";
+import { cardScore, compareCards, getPlacementsForCard, getPlayableCards, suitOrder } from "./rules.js";
 
 export function chooseCpuPlay(state, player) {
   const options = [];
@@ -39,4 +39,41 @@ export function chooseCpuDiscard(player) {
     cardScore(a) - cardScore(b) ||
     compareCards(a, b)
   ))[0];
+}
+
+export function chooseCpuAction(state, player) {
+  if (!player || player.hand.length === 0) {
+    return null;
+  }
+
+  const chosenPlay = chooseCpuPlay(state, player);
+  if (chosenPlay) {
+    return {
+      type: "play",
+      card: chosenPlay.card,
+      placement: chosenPlay.placement,
+    };
+  }
+
+  const fallbackPlayableCard = getPlayableCards(state, player)[0];
+  if (fallbackPlayableCard) {
+    const fallbackPlacement = getPlacementsForCard(state, fallbackPlayableCard)[0];
+    if (fallbackPlacement) {
+      return {
+        type: "play",
+        card: fallbackPlayableCard,
+        placement: fallbackPlacement,
+      };
+    }
+  }
+
+  const discard = chooseCpuDiscard(player);
+  if (!discard) {
+    return null;
+  }
+
+  return {
+    type: "discard",
+    card: discard,
+  };
 }

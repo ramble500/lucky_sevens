@@ -2,8 +2,8 @@ import {
   createInitialState,
   setupRound,
   getPlayerById,
-  getPlacementsForCard,
   getCardById,
+  getPlacementsForCard,
   cardLabel,
   jokerName,
   placementLabel,
@@ -15,7 +15,7 @@ import {
   advanceTurn,
   hydratePublicGameView,
 } from "../shared/rules.js";
-import { chooseCpuPlay, chooseCpuDiscard } from "../shared/ai.js";
+import { chooseCpuAction } from "../shared/ai.js";
 import { createRenderer } from "../ui/render.js";
 import { createRoomClient } from "../network/roomClient.js";
 import { ROOM_CAPACITY, normalizeRoomCode } from "../shared/roomProtocol.js";
@@ -536,21 +536,41 @@ export function startGameApp({ discord } = {}) {
     state.cpuTimer = window.setTimeout(() => {
       state.cpuTimer = null;
 
-      if (currentGameId !== state.gameId || state.result !== null) {
-        return;
-      }
+      try {
+        if (currentGameId !== state.gameId || state.result !== null) {
+          return;
+        }
 
-      const player = getPlayerById(state, playerIndex);
-      const chosenPlay = chooseCpuPlay(state, player);
+        if (state.turnIndex !== playerIndex) {
+          state.busy = false;
+          render();
+          return;
+        }
 
-      if (chosenPlay) {
-        playCardAndContinue(playerIndex, chosenPlay.card, chosenPlay.placement);
-        return;
-      }
+        const player = getPlayerById(state, playerIndex);
+        const action = chooseCpuAction(state, player);
 
-      const discard = chooseCpuDiscard(player);
-      if (discard) {
-        discardCardAndContinue(playerIndex, discard);
+        if (!action) {
+          state.busy = false;
+          addLog("CPU の手番処理に失敗しました。ローカル練習をやり直してください。");
+          render();
+          return;
+        }
+
+        const succeeded = action.type === "play"
+          ? playCardAndContinue(playerIndex, action.card, action.placement)
+          : discardCardAndContinue(playerIndex, action.card);
+
+        if (!succeeded) {
+          state.busy = false;
+          addLog("CPU の手番処理に失敗しました。ローカル練習をやり直してください。");
+          render();
+        }
+      } catch (error) {
+        console.error("Failed to resolve local CPU turn.", error);
+        state.busy = false;
+        addLog(`CPU の手番処理でエラーが発生しました: ${error.message}`);
+        render();
       }
     }, 700);
   }

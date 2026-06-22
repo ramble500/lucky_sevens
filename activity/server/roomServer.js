@@ -20,7 +20,7 @@ import {
   pushGameLog,
   createPublicGameView,
 } from "../src/shared/rules.js";
-import { chooseCpuPlay, chooseCpuDiscard } from "../src/shared/ai.js";
+import { chooseCpuAction } from "../src/shared/ai.js";
 import { ROOM_CAPACITY, ROOM_EVENTS, normalizeRoomCode } from "../src/shared/roomProtocol.js";
 
 const PORT = Number(process.env.PORT || 3001);
@@ -489,10 +489,12 @@ function runRoomCpuTurns(room) {
       continue;
     }
 
-    const chosenPlay = chooseCpuPlay(state, currentPlayer);
-    const outcome = chosenPlay
-      ? playCard(state, currentPlayer.id, chosenPlay.card, chosenPlay.placement)
-      : discardCard(state, currentPlayer.id, chooseCpuDiscard(currentPlayer));
+    const action = chooseCpuAction(state, currentPlayer);
+    const outcome = !action
+      ? null
+      : action.type === "play"
+        ? playCard(state, currentPlayer.id, action.card, action.placement)
+        : discardCard(state, currentPlayer.id, action.card);
 
     if (!outcome) {
       emitServerError(room, `${currentPlayer.name}のCPU手番で処理に失敗しました。`);

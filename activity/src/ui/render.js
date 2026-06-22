@@ -30,11 +30,15 @@ function buildBoardCard(suitKey, rank, entry) {
 
   const center = document.createElement("div");
   center.className = "card-center";
-  center.textContent = `${suit.symbol}${rankLabel(rank)}`;
+  center.textContent = entry.kind === "joker"
+    ? jokerName({ jokerSide: entry.jokerSide })
+    : `${suit.symbol}${rankLabel(rank)}`;
 
   const note = document.createElement("div");
   note.className = "card-note";
-  note.textContent = entry.kind === "joker" ? jokerName({ jokerSide: entry.jokerSide }) : suit.name;
+  note.textContent = entry.kind === "joker"
+    ? `${suit.name} / ${rankLabel(rank)}`
+    : suit.name;
 
   wrapper.append(center, note);
   return wrapper;
