@@ -20,12 +20,14 @@ window.SevensUI = (() => {
 
     const center = document.createElement("div");
     center.className = "card-center";
-    center.textContent = `${suit.symbol}${Rules.rankLabel(rank)}`;
+    center.textContent = entry.kind === "joker"
+      ? (entry.jokerSide === "low" ? "小王" : "大王")
+      : `${suit.symbol}${Rules.rankLabel(rank)}`;
 
     const note = document.createElement("div");
     note.className = "card-note";
     note.textContent = entry.kind === "joker"
-      ? (entry.jokerSide === "low" ? "小王" : "大王")
+      ? `${suit.name} / ${Rules.rankLabel(rank)}`
       : suit.name;
 
     wrapper.append(center, note);

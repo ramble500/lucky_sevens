@@ -42,8 +42,46 @@ window.SevensAI = (() => {
     ))[0];
   }
 
+  function chooseCpuAction(state, player) {
+    if (!player || player.hand.length === 0) {
+      return null;
+    }
+
+    const chosenPlay = chooseCpuPlay(state, player);
+    if (chosenPlay) {
+      return {
+        type: "play",
+        card: chosenPlay.card,
+        placement: chosenPlay.placement,
+      };
+    }
+
+    const fallbackPlayableCard = Rules.getPlayableCards(state, player)[0];
+    if (fallbackPlayableCard) {
+      const fallbackPlacement = Rules.getPlacementsForCard(state, fallbackPlayableCard)[0];
+      if (fallbackPlacement) {
+        return {
+          type: "play",
+          card: fallbackPlayableCard,
+          placement: fallbackPlacement,
+        };
+      }
+    }
+
+    const discard = chooseCpuDiscard(player);
+    if (!discard) {
+      return null;
+    }
+
+    return {
+      type: "discard",
+      card: discard,
+    };
+  }
+
   return {
     chooseCpuPlay,
     chooseCpuDiscard,
+    chooseCpuAction,
   };
 })();
