@@ -260,16 +260,22 @@ export function startGameApp({ discord } = {}) {
     const joined = Boolean(joinedRoom);
     const normalizedRoomCode = normalizeRoomCode(roomCodeInputElement.value);
     const canJoinWithCode = normalizedRoomCode.length === 4;
-    const isGameScreen = state.started && state.result === null;
-    const roomStage = isGameScreen && state.playMode === "room"
+    const isRoundActive = state.started && state.result === null;
+    const isLocalResultScreen = state.playMode === "local" && state.started && state.result !== null;
+    const roomStage = isRoundActive && state.playMode === "room"
       ? "game"
       : joined
         ? "joined"
         : "idle";
+    const screen = isLocalResultScreen
+      ? "result"
+      : isRoundActive
+        ? "game"
+        : "lobby";
 
     document.body.dataset.roomStage = roomStage;
-    document.body.dataset.gameStage = isGameScreen ? "game" : "idle";
-    document.body.dataset.screen = isGameScreen ? "game" : "lobby";
+    document.body.dataset.gameStage = isRoundActive ? "game" : "idle";
+    document.body.dataset.screen = screen;
 
     roomPlayerNameElement.disabled = joined || roomSession.inFlight;
     roomCodeInputElement.disabled = joined || roomSession.inFlight;
@@ -283,6 +289,10 @@ export function startGameApp({ discord } = {}) {
     restartButtonElement.textContent = state.playMode === "room"
       ? "部屋対戦中"
       : "ローカル練習を配る";
+
+    if (state.result && state.playMode !== "room") {
+      restartButtonElement.textContent = "ロビーに戻る";
+    }
 
     if (joinedRoom) {
       if (state.playMode === "room") {
@@ -370,7 +380,7 @@ export function startGameApp({ discord } = {}) {
     clearPendingAction();
     state.result = buildGameResult(state);
     addLog(`${state.result.winnerName} が ${state.result.winLabel} で勝ちました。`);
-    void returnToLobbyAfterRound();
+    render();
   }
 
   function completeTurn(playerIndex) {
@@ -742,6 +752,11 @@ export function startGameApp({ discord } = {}) {
 
   restartButtonElement.addEventListener("click", () => {
     if (state.playMode === "room") {
+      return;
+    }
+
+    if (state.result !== null) {
+      void returnToLobbyAfterRound();
       return;
     }
 
