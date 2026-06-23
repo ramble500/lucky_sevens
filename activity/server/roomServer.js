@@ -218,10 +218,20 @@ function buildSeatSnapshot(room, seat, viewerSocketId) {
   };
 }
 
+function hasActiveRoomGame(room) {
+  return Boolean(room.gameState && room.gameState.result === null);
+}
+
+function hasFinishedRoomGame(room) {
+  return Boolean(room.gameState && room.gameState.result !== null);
+}
+
 function buildRoomSnapshot(room, viewerSocketId) {
   const viewer = room.players.find((player) => player.socketId === viewerSocketId) || null;
   const isOwner = Boolean(viewer && viewer.seat === room.ownerSeat);
-  const isWaiting = room.gameState === null;
+  const isWaiting = room.gameState === null || hasFinishedRoomGame(room);
+  const activeGame = hasActiveRoomGame(room);
+  const finishedGame = hasFinishedRoomGame(room);
 
   return {
     code: room.code,
@@ -231,9 +241,11 @@ function buildRoomSnapshot(room, viewerSocketId) {
     isOwner,
     canStart: isWaiting && isOwner && room.players.length === ROOM_CAPACITY,
     canStartWithCpu: isWaiting && isOwner && room.players.length > 0 && room.players.length < ROOM_CAPACITY,
-    status: room.gameState
+    status: activeGame
       ? "in-game"
-      : room.players.length === ROOM_CAPACITY
+      : finishedGame
+        ? "finished"
+        : room.players.length === ROOM_CAPACITY
         ? "full"
         : "waiting",
     seats: Array.from({ length: ROOM_CAPACITY }, (_, seat) => buildSeatSnapshot(room, seat, viewerSocketId)),
@@ -376,12 +388,14 @@ function removePlayerFromRoom(socket, reason = "left") {
 
   touchRoom(room);
 
-  if (room.gameState && leavingPlayer) {
+  if (hasActiveRoomGame(room) && leavingPlayer) {
     room.gameState = null;
     emitServerError(
       room,
       `${leavingPlayer.name}が${reason === "disconnect" ? "切断" : "退出"}したため対戦を終了しました。`,
     );
+  } else if (hasFinishedRoomGame(room)) {
+    room.gameState = null;
   }
 
   cleanupRoomIfEmpty(room);
@@ -610,7 +624,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room.gameState) {
+    if (hasActiveRoomGame(room)) {
       ack(response(false, { error: "game-already-started" }));
       return;
     }
@@ -657,7 +671,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (room.gameState) {
+    if (hasActiveRoomGame(room)) {
       ack(response(false, { error: "game-already-started" }));
       return;
     }

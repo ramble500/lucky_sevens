@@ -91,6 +91,15 @@ export function startGameApp({ discord } = {}) {
     returningToLobby: false,
   };
 
+  const SCREEN_STATES = {
+    HOME: "home",
+    ROOM_LOBBY: "room-lobby",
+    LOCAL_GAME: "local-game",
+    ROOM_GAME: "room-game",
+    LOCAL_RESULT: "local-result",
+    ROOM_RESULT: "room-result",
+  };
+
   let unsubscribeDiscord = null;
 
   function addLog(message) {
@@ -110,22 +119,93 @@ export function startGameApp({ discord } = {}) {
     }
   }
 
-  function resetToLobbyState() {
-    clearCpuTimer();
-
+  function buildFreshState(playMode = "local") {
     const nextState = createInitialState();
     nextState.gameId = (state.gameId || 0) + 1;
-    replaceState(state, nextState);
+    nextState.playMode = playMode;
+    return nextState;
+  }
+
+  function resetToHomeState() {
+    clearCpuTimer();
+    replaceState(state, buildFreshState("local"));
     clearPendingAction();
   }
 
-  async function returnToLobbyAfterRound({ leaveRoom = false } = {}) {
+  function resetToJoinedRoomState() {
+    clearCpuTimer();
+    replaceState(state, buildFreshState("room"));
+    clearPendingAction();
+  }
+
+  function getCurrentScreen() {
+    if (state.result !== null) {
+      return state.playMode === "room"
+        ? SCREEN_STATES.ROOM_RESULT
+        : SCREEN_STATES.LOCAL_RESULT;
+    }
+
+    if (state.started) {
+      return state.playMode === "room"
+        ? SCREEN_STATES.ROOM_GAME
+        : SCREEN_STATES.LOCAL_GAME;
+    }
+
+    if (roomSession.currentRoom) {
+      return SCREEN_STATES.ROOM_LOBBY;
+    }
+
+    return SCREEN_STATES.HOME;
+  }
+
+  function getScreenGroup(screen = getCurrentScreen()) {
+    if (screen === SCREEN_STATES.LOCAL_GAME || screen === SCREEN_STATES.ROOM_GAME) {
+      return "game";
+    }
+
+    if (screen === SCREEN_STATES.LOCAL_RESULT || screen === SCREEN_STATES.ROOM_RESULT) {
+      return "result";
+    }
+
+    return "lobby";
+  }
+
+  function syncViewDatasets() {
+    const screen = getCurrentScreen();
+    const screenGroup = getScreenGroup(screen);
+    const roomStage = !roomSession.currentRoom
+      ? "idle"
+      : screen === SCREEN_STATES.ROOM_GAME
+        ? "game"
+        : screen === SCREEN_STATES.ROOM_RESULT
+          ? "finished"
+          : "joined";
+    const gameStage = screenGroup === "game"
+      ? "game"
+      : screenGroup === "result"
+        ? "result"
+        : "idle";
+
+    document.body.dataset.screen = screen;
+    document.body.dataset.screenGroup = screenGroup;
+    document.body.dataset.roomStage = roomStage;
+    document.body.dataset.gameStage = gameStage;
+
+    return {
+      screen,
+      screenGroup,
+      roomStage,
+      gameStage,
+    };
+  }
+
+  async function returnToHomeScreen({ leaveRoom = false } = {}) {
     if (roomSession.returningToLobby) {
       return;
     }
 
     roomSession.returningToLobby = true;
-    resetToLobbyState();
+    resetToHomeState();
     render();
 
     if (leaveRoom && roomSession.currentRoom) {
@@ -260,22 +340,7 @@ export function startGameApp({ discord } = {}) {
     const joined = Boolean(joinedRoom);
     const normalizedRoomCode = normalizeRoomCode(roomCodeInputElement.value);
     const canJoinWithCode = normalizedRoomCode.length === 4;
-    const isRoundActive = state.started && state.result === null;
-    const isLocalResultScreen = state.playMode === "local" && state.started && state.result !== null;
-    const roomStage = isRoundActive && state.playMode === "room"
-      ? "game"
-      : joined
-        ? "joined"
-        : "idle";
-    const screen = isLocalResultScreen
-      ? "result"
-      : isRoundActive
-        ? "game"
-        : "lobby";
-
-    document.body.dataset.roomStage = roomStage;
-    document.body.dataset.gameStage = isRoundActive ? "game" : "idle";
-    document.body.dataset.screen = screen;
+    const { screen } = syncViewDatasets();
 
     roomPlayerNameElement.disabled = joined || roomSession.inFlight;
     roomCodeInputElement.disabled = joined || roomSession.inFlight;
@@ -285,39 +350,50 @@ export function startGameApp({ discord } = {}) {
     roomStartCpuButtonElement.disabled = !joinedRoom?.canStartWithCpu || roomSession.inFlight;
     roomLeaveButtonElement.disabled = !joined || roomSession.inFlight;
 
-    restartButtonElement.disabled = state.playMode === "room" || joined || roomSession.inFlight || roomSession.returningToLobby;
-    restartButtonElement.textContent = state.playMode === "room"
-      ? "部屋対戦中"
-      : "ローカル練習を配る";
-
-    if (state.result && state.playMode !== "room") {
-      restartButtonElement.textContent = "ロビーに戻る";
-    }
+    restartButtonElement.disabled =
+      screen === SCREEN_STATES.ROOM_LOBBY ||
+      screen === SCREEN_STATES.ROOM_GAME ||
+      screen === SCREEN_STATES.ROOM_RESULT ||
+      roomSession.inFlight ||
+      roomSession.returningToLobby;
+    restartButtonElement.textContent = screen === SCREEN_STATES.LOCAL_RESULT
+      ? "ロビーに戻る"
+      : "ローカル練習を始める";
 
     if (joinedRoom) {
-      if (state.playMode === "room") {
-        roomStatusElement.textContent = `部屋 ${joinedRoom.code} で対戦中です。終わるか、部屋を出るとローカル練習に戻ります。`;
-      } else {
-        let startHint = `${joinedRoom.playerCount} / ${joinedRoom.capacity} 人が参加中です。`;
+      roomCodeInputElement.value = joinedRoom.code;
 
-        if (joinedRoom.canStart) {
-          startHint = joinedRoom.isOwner
-            ? "3人そろいました。部屋主が開始できます。"
-            : "3人そろいました。部屋主の開始を待っています。";
-        } else if (joinedRoom.canStartWithCpu) {
-          startHint = joinedRoom.isOwner
-            ? "部屋主なら CPU を入れて開始できます。"
-            : "人数が足りません。部屋主が CPU を入れて開始することもできます。";
-        } else if (joinedRoom.isOwner) {
-          startHint = "参加者がそろうのを待っています。";
-        } else {
-          startHint = "部屋主の開始を待っています。";
-        }
-
-        roomStatusElement.textContent = `部屋 ${joinedRoom.code} に参加中です。${startHint}`;
+      if (screen === SCREEN_STATES.ROOM_GAME || joinedRoom.status === "in-game") {
+        roomStatusElement.textContent = `部屋 ${joinedRoom.code} で対戦中です。対戦が終わるまで部屋は維持されます。`;
+        renderRoomSeats(joinedRoom);
+        return;
       }
 
-      roomCodeInputElement.value = joinedRoom.code;
+      if (screen === SCREEN_STATES.ROOM_RESULT || joinedRoom.status === "finished") {
+        roomStatusElement.textContent = joinedRoom.isOwner
+          ? `部屋 ${joinedRoom.code} の結果を表示中です。開始で再戦、退出で部屋を出られます。`
+          : `部屋 ${joinedRoom.code} の結果を表示中です。再戦する場合は部屋主の開始を待ってください。`;
+        renderRoomSeats(joinedRoom);
+        return;
+      }
+
+      let startHint = `${joinedRoom.playerCount} / ${joinedRoom.capacity} 人が参加中です。`;
+
+      if (joinedRoom.canStart) {
+        startHint = joinedRoom.isOwner
+          ? "3人そろいました。部屋主が開始できます。"
+          : "3人そろいました。部屋主の開始を待ってください。";
+      } else if (joinedRoom.canStartWithCpu) {
+        startHint = joinedRoom.isOwner
+          ? "部屋主なら CPU で埋めて開始できます。"
+          : "人数が足りません。部屋主が CPU で埋めることもできます。";
+      } else if (joinedRoom.isOwner) {
+        startHint = "参加者がそろうまで待っています。";
+      } else {
+        startHint = "部屋主の開始を待っています。";
+      }
+
+      roomStatusElement.textContent = `部屋 ${joinedRoom.code} に参加中です。${startHint}`;
       renderRoomSeats(joinedRoom);
       return;
     }
@@ -610,11 +686,6 @@ export function startGameApp({ discord } = {}) {
     clearCpuTimer();
     const nextState = hydratePublicGameView(gameView);
 
-    if (nextState.result !== null) {
-      void returnToLobbyAfterRound({ leaveRoom: true });
-      return;
-    }
-
     nextState.gameId = (state.gameId || 0) + 1;
     nextState.busy = false;
     nextState.pendingCardId = null;
@@ -651,6 +722,7 @@ export function startGameApp({ discord } = {}) {
 
       roomSession.currentRoom = result.room;
       roomCodeInputElement.value = result.roomCode;
+      resetToJoinedRoomState();
       addLog(`部屋 ${result.roomCode} を作成しました。あと ${ROOM_CAPACITY - 1} 人まで参加できます。`);
       render();
     });
@@ -672,6 +744,7 @@ export function startGameApp({ discord } = {}) {
       }
 
       roomSession.currentRoom = result.room;
+      resetToJoinedRoomState();
       addLog(`部屋 ${result.roomCode} に参加しました。`);
       render();
     });
@@ -686,6 +759,7 @@ export function startGameApp({ discord } = {}) {
       }
 
       roomSession.currentRoom = result.room;
+      resetToJoinedRoomState();
       addLog(fillWithCpu
         ? "CPU で空席を埋めて対戦を開始しました。"
         : "部屋対戦を開始しました。");
@@ -705,7 +779,7 @@ export function startGameApp({ discord } = {}) {
       roomSession.currentRoom = null;
       roomCodeInputElement.value = "";
 
-      resetToLobbyState();
+      resetToHomeState();
       render();
 
       addLog(joinedCode ? `部屋 ${joinedCode} から退出しました。` : "部屋から退出しました。");
@@ -717,20 +791,24 @@ export function startGameApp({ discord } = {}) {
     roomClient.onReady(() => {
       roomSession.connected = true;
       roomSession.connectionError = "";
-      renderRoomPanel();
+      render();
     });
 
     roomClient.onRoomUpdate((room) => {
+      const wasShowingRoomRound = state.playMode === "room" && (state.started || state.result !== null);
       roomSession.currentRoom = room;
 
-      if (state.playMode === "room" && room.status !== "in-game") {
-        void returnToLobbyAfterRound({ leaveRoom: true });
-        addLog("部屋対戦が終了したため、ローカル練習に戻ります。");
+      if (wasShowingRoomRound && room.status !== "in-game" && room.status !== "finished") {
+        const wasCanceledMidGame = state.result === null;
+        resetToJoinedRoomState();
+        if (wasCanceledMidGame) {
+          addLog("対戦状態が終了したため、部屋の待機画面に戻りました。");
+        }
         render();
         return;
       }
 
-      renderRoomPanel();
+      render();
     });
 
     roomClient.onGameView((payload) => {
@@ -746,17 +824,17 @@ export function startGameApp({ discord } = {}) {
     roomClient.connect().catch((error) => {
       roomSession.connected = false;
       roomSession.connectionError = `room server に接続できませんでした: ${error.message}`;
-      renderRoomPanel();
+      render();
     });
   }
 
   restartButtonElement.addEventListener("click", () => {
-    if (state.playMode === "room") {
+    if (roomSession.currentRoom) {
       return;
     }
 
     if (state.result !== null) {
-      void returnToLobbyAfterRound();
+      void returnToHomeScreen();
       return;
     }
 
@@ -795,6 +873,6 @@ export function startGameApp({ discord } = {}) {
 
   initializeDiscordPanel();
   connectRoomClient();
-  resetToLobbyState();
+  resetToHomeState();
   render();
 }
