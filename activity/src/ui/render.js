@@ -107,6 +107,7 @@ export function createRenderer(handlers) {
     boardElement.innerHTML = "";
 
     for (const suit of suits) {
+      const lane = state.board?.[suit.key] || { placed: new Map() };
       const row = document.createElement("div");
       row.className = "board-row";
 
@@ -117,7 +118,7 @@ export function createRenderer(handlers) {
 
       for (let rank = 1; rank <= 13; rank += 1) {
         const slot = document.createElement("div");
-        const entry = state.board[suit.key].placed.get(rank);
+        const entry = lane.placed.get(rank);
         slot.className = `board-slot ${entry ? "" : "empty"}`.trim();
 
         if (entry) {

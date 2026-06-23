@@ -19,10 +19,25 @@ export const defaultPlayerConfigs = playerNames.map((name, index) => ({
   isHuman: index === 0,
 }));
 
+function createEmptyBoard() {
+  const board = {};
+
+  for (const suit of suits) {
+    board[suit.key] = {
+      started: false,
+      low: null,
+      high: null,
+      placed: new Map(),
+    };
+  }
+
+  return board;
+}
+
 export function createInitialState() {
   return {
     players: [],
-    board: {},
+    board: createEmptyBoard(),
     turnIndex: 0,
     started: false,
     busy: false,
@@ -166,16 +181,7 @@ export function placementLabel(placement) {
 }
 
 function initializeBoard(state) {
-  state.board = {};
-
-  for (const suit of suits) {
-    state.board[suit.key] = {
-      started: false,
-      low: null,
-      high: null,
-      placed: new Map(),
-    };
-  }
+  state.board = createEmptyBoard();
 }
 
 function startLaneWithSpadeSeven(state) {
