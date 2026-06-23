@@ -397,8 +397,6 @@ function removePlayerFromRoom(socket, reason = "left") {
       room,
       `${leavingPlayer.name}が${reason === "disconnect" ? "切断" : "退出"}したため対戦を終了しました。`,
     );
-  } else if (hasFinishedRoomGame(room)) {
-    room.gameState = null;
   }
 
   cleanupRoomIfEmpty(room);

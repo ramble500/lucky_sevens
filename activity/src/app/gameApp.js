@@ -100,6 +100,7 @@ export function startGameApp({ discord } = {}) {
     ROOM_RESULT: "room-result",
   };
 
+  let currentScreen = SCREEN_STATES.HOME;
   let unsubscribeDiscord = null;
 
   function addLog(message) {
@@ -130,32 +131,18 @@ export function startGameApp({ discord } = {}) {
     clearCpuTimer();
     replaceState(state, buildFreshState("local"));
     clearPendingAction();
+    currentScreen = SCREEN_STATES.HOME;
   }
 
   function resetToJoinedRoomState() {
     clearCpuTimer();
     replaceState(state, buildFreshState("room"));
     clearPendingAction();
+    currentScreen = SCREEN_STATES.ROOM_LOBBY;
   }
 
   function getCurrentScreen() {
-    if (state.result !== null) {
-      return state.playMode === "room"
-        ? SCREEN_STATES.ROOM_RESULT
-        : SCREEN_STATES.LOCAL_RESULT;
-    }
-
-    if (state.started) {
-      return state.playMode === "room"
-        ? SCREEN_STATES.ROOM_GAME
-        : SCREEN_STATES.LOCAL_GAME;
-    }
-
-    if (roomSession.currentRoom) {
-      return SCREEN_STATES.ROOM_LOBBY;
-    }
-
-    return SCREEN_STATES.HOME;
+    return currentScreen;
   }
 
   function getScreenGroup(screen = getCurrentScreen()) {
@@ -341,11 +328,12 @@ export function startGameApp({ discord } = {}) {
     const normalizedRoomCode = normalizeRoomCode(roomCodeInputElement.value);
     const canJoinWithCode = normalizedRoomCode.length === 4;
     const { screen } = syncViewDatasets();
+    const showingResult = getScreenGroup(screen) === "result";
 
     roomPlayerNameElement.disabled = joined || roomSession.inFlight;
     roomCodeInputElement.disabled = joined || roomSession.inFlight;
-    roomCreateButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight;
-    roomJoinButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight || !canJoinWithCode;
+    roomCreateButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight || showingResult;
+    roomJoinButtonElement.disabled = !roomSession.connected || joined || roomSession.inFlight || !canJoinWithCode || showingResult;
     roomStartButtonElement.disabled = !joinedRoom?.canStart || roomSession.inFlight;
     roomStartCpuButtonElement.disabled = !joinedRoom?.canStartWithCpu || roomSession.inFlight;
     roomLeaveButtonElement.disabled = !joined || roomSession.inFlight;
@@ -455,6 +443,9 @@ export function startGameApp({ discord } = {}) {
     state.busy = false;
     clearPendingAction();
     state.result = buildGameResult(state);
+    currentScreen = state.playMode === "room"
+      ? SCREEN_STATES.ROOM_RESULT
+      : SCREEN_STATES.LOCAL_RESULT;
     addLog(`${state.result.winnerName} が ${state.result.winLabel} で勝ちました。`);
     render();
   }
@@ -671,6 +662,7 @@ export function startGameApp({ discord } = {}) {
     nextState.viewerPlayerId = 0;
     replaceState(state, nextState);
     clearPendingAction();
+    currentScreen = SCREEN_STATES.LOCAL_GAME;
 
     const { starter, nextPlayer } = setupRound(state);
     state.log = [
@@ -691,6 +683,9 @@ export function startGameApp({ discord } = {}) {
     nextState.pendingCardId = null;
     nextState.pendingMoves = [];
     replaceState(state, nextState);
+    currentScreen = nextState.result !== null
+      ? SCREEN_STATES.ROOM_RESULT
+      : SCREEN_STATES.ROOM_GAME;
     render();
   }
 
@@ -807,7 +802,9 @@ export function startGameApp({ discord } = {}) {
     roomClient.onRoomUpdate((payload) => {
       const room = payload?.room || payload;
       const game = payload?.game || null;
-      const wasShowingRoomRound = state.playMode === "room" && (state.started || state.result !== null);
+      const screen = getCurrentScreen();
+      const wasShowingRoomGame = screen === SCREEN_STATES.ROOM_GAME;
+      const wasShowingRoomResult = screen === SCREEN_STATES.ROOM_RESULT;
       roomSession.currentRoom = room;
 
       if (game) {
@@ -815,12 +812,19 @@ export function startGameApp({ discord } = {}) {
         return;
       }
 
-      if (wasShowingRoomRound && room.status !== "in-game" && room.status !== "finished") {
-        const wasCanceledMidGame = state.result === null;
+      if (wasShowingRoomResult) {
+        render();
+        return;
+      }
+
+      if (wasShowingRoomGame && room.status === "finished") {
+        render();
+        return;
+      }
+
+      if (wasShowingRoomGame && room.status !== "in-game") {
         resetToJoinedRoomState();
-        if (wasCanceledMidGame) {
           addLog("対戦状態が終了したため、部屋の待機画面に戻りました。");
-        }
         render();
         return;
       }

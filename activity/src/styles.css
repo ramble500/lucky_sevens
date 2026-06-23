@@ -354,6 +354,29 @@ body[data-screen-group="game"] .game-layout {
   margin-top: 0;
 }
 
+body[data-screen-group="result"] .lead,
+body[data-screen-group="result"] .activity-status-summary,
+body[data-screen-group="result"] .participant-list,
+body[data-screen-group="result"] #invite-button,
+body[data-screen-group="result"] .room-row,
+body[data-screen-group="result"] .room-join-row,
+body[data-screen-group="result"] .rules-card {
+  display: none;
+}
+
+body[data-screen-group="result"] .side-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-screen-group="result"] .results-card {
+  order: -2;
+}
+
+body[data-screen-group="result"] .log-card {
+  order: -1;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   font-size: 0.8rem;
