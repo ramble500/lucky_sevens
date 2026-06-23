@@ -759,7 +759,6 @@ export function startGameApp({ discord } = {}) {
       }
 
       roomSession.currentRoom = result.room;
-      resetToJoinedRoomState();
       addLog(fillWithCpu
         ? "CPU で空席を埋めて対戦を開始しました。"
         : "部屋対戦を開始しました。");
