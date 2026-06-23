@@ -291,7 +291,10 @@ function emitRoomUpdated(room) {
       return;
     }
 
-    socket.emit(ROOM_EVENTS.ROOM_UPDATED, buildRoomSnapshot(room, player.socketId));
+    socket.emit(ROOM_EVENTS.ROOM_UPDATED, {
+      room: buildRoomSnapshot(room, player.socketId),
+      game: room.gameState ? createPublicGameView(room.gameState, player.seat) : null,
+    });
   });
 }
 
@@ -607,6 +610,7 @@ io.on("connection", (socket) => {
       roomCode,
       seat: player.seat,
       room: buildRoomSnapshot(room, socket.id),
+      game: room.gameState ? createPublicGameView(room.gameState, player.seat) : null,
     }));
   });
 
@@ -640,6 +644,7 @@ io.on("connection", (socket) => {
       roomCode,
       seat: player.seat,
       room: buildRoomSnapshot(room, socket.id),
+      game: room.gameState ? createPublicGameView(room.gameState, player.seat) : null,
     }));
   });
 
@@ -694,6 +699,7 @@ io.on("connection", (socket) => {
     emitGameViews(room);
     ack(response(true, {
       room: buildRoomSnapshot(room, socket.id),
+      game: room.gameState ? createPublicGameView(room.gameState, player.seat) : null,
     }));
   });
 

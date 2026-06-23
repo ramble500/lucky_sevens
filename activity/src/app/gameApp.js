@@ -722,7 +722,11 @@ export function startGameApp({ discord } = {}) {
 
       roomSession.currentRoom = result.room;
       roomCodeInputElement.value = result.roomCode;
-      resetToJoinedRoomState();
+      if (result.game) {
+        applyRemoteGameView(result.game);
+      } else {
+        resetToJoinedRoomState();
+      }
       addLog(`部屋 ${result.roomCode} を作成しました。あと ${ROOM_CAPACITY - 1} 人まで参加できます。`);
       render();
     });
@@ -744,7 +748,11 @@ export function startGameApp({ discord } = {}) {
       }
 
       roomSession.currentRoom = result.room;
-      resetToJoinedRoomState();
+      if (result.game) {
+        applyRemoteGameView(result.game);
+      } else {
+        resetToJoinedRoomState();
+      }
       addLog(`部屋 ${result.roomCode} に参加しました。`);
       render();
     });
@@ -759,6 +767,9 @@ export function startGameApp({ discord } = {}) {
       }
 
       roomSession.currentRoom = result.room;
+      if (result.game) {
+        applyRemoteGameView(result.game);
+      }
       addLog(fillWithCpu
         ? "CPU で空席を埋めて対戦を開始しました。"
         : "部屋対戦を開始しました。");
@@ -793,9 +804,16 @@ export function startGameApp({ discord } = {}) {
       render();
     });
 
-    roomClient.onRoomUpdate((room) => {
+    roomClient.onRoomUpdate((payload) => {
+      const room = payload?.room || payload;
+      const game = payload?.game || null;
       const wasShowingRoomRound = state.playMode === "room" && (state.started || state.result !== null);
       roomSession.currentRoom = room;
+
+      if (game) {
+        applyRemoteGameView(game);
+        return;
+      }
 
       if (wasShowingRoomRound && room.status !== "in-game" && room.status !== "finished") {
         const wasCanceledMidGame = state.result === null;

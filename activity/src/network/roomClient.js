@@ -96,7 +96,10 @@ export function createRoomClient(options = {}) {
   });
 
   socket.on(ROOM_EVENTS.ROOM_UPDATED, (payload) => {
-    notify("room", payload);
+    notify("room", {
+      room: payload?.room || payload,
+      game: payload?.game || null,
+    });
   });
 
   socket.on(ROOM_EVENTS.GAME_VIEW, (payload) => {
